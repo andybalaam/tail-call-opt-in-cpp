@@ -47,7 +47,7 @@ struct FunctionTailCall
 
     Ans_ptr operator()()
     {
-        print_indent( indent_, "fact_impl_tc" );
+        print_indent( indent_, "sumall_impl_tc" );
         return fn_( arg1_, arg2_, indent_ );
     }
 };
@@ -66,7 +66,7 @@ struct TailCallOrAnswer
     {
     }
 
-    TailCallOrAnswer( std::auto_ptr<long> ret_val )
+    TailCallOrAnswer( long_ptr ret_val )
     : tail_call_( NULL )
     , ret_val_( ret_val )
     {
@@ -79,19 +79,19 @@ struct TailCallOrAnswer
     }
 };
 
-Ans_ptr fact_impl_tc( long acc, long i, int indent )
+Ans_ptr sumall_impl_tc( long acc, long i, int indent )
 {
     if( i == 0 )
     {
         return Ans_ptr(
-            new TailCallOrAnswer( std::auto_ptr<long>( new long( acc ) ) ) );
+            new TailCallOrAnswer( long_ptr( new long( acc ) ) ) );
     }
     else
     {
         return Ans_ptr(
             new TailCallOrAnswer( Tc_ptr(
                 new FunctionTailCall(
-                    fact_impl_tc, acc + i, i - 1, indent ) ) ) );
+                    sumall_impl_tc, acc + i, i - 1, indent ) ) ) );
     }
 }
 
@@ -104,16 +104,16 @@ long tail_call( Ans_ptr call )
     return *( call->ret_val_ );
 }
 
-long fact_tc( long n )
+long sumall_tc( long n )
 {
     return tail_call( Ans_ptr(
         new TailCallOrAnswer(
-            Tc_ptr( new FunctionTailCall( fact_impl_tc, 1, n, 0 ) ) ) ) );
+            Tc_ptr( new FunctionTailCall( sumall_impl_tc, 1, n, 0 ) ) ) ) );
 }
 
-long fact_impl( long acc, long i, int indent )
+long sumall_impl( long acc, long i, int indent )
 {
-    print_indent( indent, "fact_impl" );
+    print_indent( indent, "sumall_impl" );
 
     if( i == 0 )
     {
@@ -121,18 +121,18 @@ long fact_impl( long acc, long i, int indent )
     }
     else
     {
-        return fact_impl( acc + i, i - 1, indent + 1 );
+        return sumall_impl( acc + i, i - 1, indent + 1 );
     }
 }
 
-long fact( long n )
+long sumall( long n )
 {
-    return fact_impl( 1, n, 0 );
+    return sumall_impl( 1, n, 0 );
 }
 
 int main()
 {
-    std::cout << fact( 300 ) << std::endl;
-    std::cout << fact_tc( 300 ) << std::endl;
+    std::cout << sumall( 300 ) << std::endl;
+    std::cout << sumall_tc( 300 ) << std::endl;
 }
 
