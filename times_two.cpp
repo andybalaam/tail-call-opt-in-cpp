@@ -1,8 +1,11 @@
 #include <cassert>
+#include <cstring>
+#include <stdexcept>
 #include <iostream>
 #include <memory>
 #include <string>
-
+#include <sstream>
+/*
 struct TailCallOrAnswer;
 typedef std::auto_ptr<TailCallOrAnswer> Ans_ptr;
 
@@ -130,9 +133,110 @@ long sumall( long n )
     return sumall_impl( 1, n, 0 );
 }
 
-int main()
+*/
+
+long times_two_loop( long value )
 {
-    std::cout << sumall( 300 ) << std::endl;
-    std::cout << sumall_tc( 300 ) << std::endl;
+    long ret = 0;
+    for( long i = 0; i < value; ++i )
+    {
+        ret += 2;
+    }
+    return ret;
+}
+
+long times_two_hardware( long value )
+{
+    return value * 2;
+}
+
+
+struct AssertionFailure : public std::runtime_error
+{
+    explicit AssertionFailure( const std::string& what_arg )
+    : std::runtime_error( what_arg )
+    {
+    }
+};
+
+std::string make_error(
+    long expected, long actual, long arg, const std::string& function_name )
+{
+    std::ostringstream ss;
+    ss  << "AssertionError: "
+        << function_name << "( " << arg << " ) != "
+        << expected << "  (Value returned: " << actual << ")";
+
+    return ss.str();
+}
+
+
+void assert_equal(
+    long expected, long actual, long arg, const std::string& function_name )
+{
+    if ( expected != actual )
+    {
+        throw AssertionFailure(
+            make_error( expected, actual, arg, function_name ) );
+    }
+}
+
+typedef long (*times_two_function)( long );
+
+void test_one( times_two_function fn, const std::string& function_name )
+{
+    assert_equal(  0, fn(  0 ),  0, function_name );
+    assert_equal(  2, fn(  1 ),  1, function_name );
+    assert_equal(  4, fn(  2 ),  2, function_name );
+    assert_equal( 20, fn( 10 ), 10, function_name );
+    assert_equal( 26, fn( 13 ), 13, function_name );
+}
+
+int test_all()
+{
+    try
+    {
+        test_one( times_two_hardware, "times_two_hardware" );
+        test_one( times_two_loop,     "times_two_loop" );
+    }
+    catch( AssertionFailure& e )
+    {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
+    return 0;
+}
+
+int main( int argc, char * const argv[] )
+{
+    if ( argc != 2 )
+    {
+        std::cerr
+            << "You must specify one of: "
+            << "test, hardware, loop, recursive, tail_call"
+            << std::endl;
+
+        return 1;
+    }
+
+    std::string arg( argv[1] );
+    if ( arg == "test" )
+    {
+        return test_all();
+    }
+    else if ( arg == "hardware" )
+    {
+    }
+    else if ( arg == "loop" )
+    {
+    }
+    else if ( arg == "recursive" )
+    {
+    }
+    else if ( arg == "tail_call" )
+    {
+    }
+
+    return 0;
 }
 

@@ -1,3 +1,15 @@
 
-all:
-	ulimit -S -s 4096; scons && ulimit -S -s 16 && ./tail_call
+all: test
+
+compile: times_two
+
+times_two: times_two.cpp
+	g++ -Wall -Werror -o times_two times_two.cpp
+
+test: compile
+	./times_two test
+
+hardware: compile
+	./times_two hardware
+
+
