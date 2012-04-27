@@ -1,0 +1,11 @@
+$ ulimit -S -s 16
+$ ./tail_call 300
+fact_impl_tc
+fact_impl_tc
+fact_impl_tc
+<snip>
+fact_impl_tc
+fact_impl_tc
+fact_impl_tc
+45151
+

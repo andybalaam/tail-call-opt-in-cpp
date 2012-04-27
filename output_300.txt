@@ -1,0 +1,12 @@
+$ ulimit -S -s 16
+$ ./tail_call 300
+fact_impl
+  fact_impl
+    fact_impl
+      fact_impl
+        fact_impl
+          fact_impl
+            fact_impl
+<snip>
+Segmentation fault
+

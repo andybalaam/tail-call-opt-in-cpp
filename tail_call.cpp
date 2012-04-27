@@ -4,6 +4,7 @@
 #include <string>
 
 struct TailCallOrAnswer;
+typedef std::auto_ptr<TailCallOrAnswer> Ans_ptr;
 
 void print_indent( int indent, const std::string& fn_name )
 {
@@ -14,15 +15,17 @@ void print_indent( int indent, const std::string& fn_name )
     std::cout << fn_name << std::endl;
 }
 
+
+
 struct FunctionTailCall
 {
-    std::auto_ptr<TailCallOrAnswer> (*fn_)( long, long, int );
+    Ans_ptr (*fn_)( long, long, int );
     long arg1_;
     long arg2_;
     int indent_;
 
     FunctionTailCall(
-        std::auto_ptr<TailCallOrAnswer> (*fn)( long, long, int ),
+        Ans_ptr (*fn)( long, long, int ),
         long arg1,
         long arg2,
         int indent
@@ -42,19 +45,22 @@ struct FunctionTailCall
     {
     }
 
-    std::auto_ptr<TailCallOrAnswer> operator()()
+    Ans_ptr operator()()
     {
         print_indent( indent_, "fact_impl_tc" );
         return fn_( arg1_, arg2_, indent_ );
     }
 };
 
+typedef std::auto_ptr<FunctionTailCall> Tc_ptr;
+typedef std::auto_ptr<long> long_ptr;
+
 struct TailCallOrAnswer
 {
-    std::auto_ptr<FunctionTailCall> tail_call_;
-    std::auto_ptr<long> ret_val_;
+    Tc_ptr tail_call_;
+    long_ptr ret_val_;
 
-    TailCallOrAnswer( std::auto_ptr<FunctionTailCall> tail_call )
+    TailCallOrAnswer( Tc_ptr tail_call )
     : tail_call_( tail_call )
     , ret_val_( NULL )
     {
@@ -73,23 +79,23 @@ struct TailCallOrAnswer
     }
 };
 
-std::auto_ptr<TailCallOrAnswer> fact_impl_tc( long acc, long i, int indent )
+Ans_ptr fact_impl_tc( long acc, long i, int indent )
 {
     if( i == 0 )
     {
-        return std::auto_ptr<TailCallOrAnswer>(
+        return Ans_ptr(
             new TailCallOrAnswer( std::auto_ptr<long>( new long( acc ) ) ) );
     }
     else
     {
-        return std::auto_ptr<TailCallOrAnswer>(
-            new TailCallOrAnswer( std::auto_ptr<FunctionTailCall>(
+        return Ans_ptr(
+            new TailCallOrAnswer( Tc_ptr(
                 new FunctionTailCall(
                     fact_impl_tc, acc + i, i - 1, indent ) ) ) );
     }
 }
 
-long tail_call( std::auto_ptr<TailCallOrAnswer> call )
+long tail_call( Ans_ptr call )
 {
     while( call->tail_call_.get() )
     {
@@ -100,10 +106,9 @@ long tail_call( std::auto_ptr<TailCallOrAnswer> call )
 
 long fact_tc( long n )
 {
-    return tail_call( std::auto_ptr<TailCallOrAnswer>(
+    return tail_call( Ans_ptr(
         new TailCallOrAnswer(
-            std::auto_ptr<FunctionTailCall>(
-                new FunctionTailCall( fact_impl_tc, 1, n, 0 ) ) ) ) );
+            Tc_ptr( new FunctionTailCall( fact_impl_tc, 1, n, 0 ) ) ) ) );
 }
 
 long fact_impl( long acc, long i, int indent )
@@ -127,7 +132,7 @@ long fact( long n )
 
 int main()
 {
-    std::cout << fact_tc( 300 ) << std::endl;
     std::cout << fact( 300 ) << std::endl;
+    std::cout << fact_tc( 300 ) << std::endl;
 }
 

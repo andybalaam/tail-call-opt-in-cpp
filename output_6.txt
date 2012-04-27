@@ -1,0 +1,10 @@
+$ ./tail_call 6
+fact_impl
+  fact_impl
+    fact_impl
+      fact_impl
+        fact_impl
+          fact_impl
+            fact_impl
+22
+
