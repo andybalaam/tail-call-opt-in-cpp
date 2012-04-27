@@ -5,38 +5,28 @@
 #include <memory>
 #include <string>
 #include <sstream>
-/*
+
 struct TailCallOrAnswer;
 typedef std::auto_ptr<TailCallOrAnswer> Ans_ptr;
 
-void print_indent( int indent, const std::string& fn_name )
-{
-    for( int in = 0; in < indent; ++in )
-    {
-        std::cout << "  ";
-    }
-    std::cout << fn_name << std::endl;
-}
+
 
 
 
 struct FunctionTailCall
 {
-    Ans_ptr (*fn_)( long, long, int );
+    Ans_ptr (*fn_)( long, long );
     long arg1_;
     long arg2_;
-    int indent_;
 
     FunctionTailCall(
-        Ans_ptr (*fn)( long, long, int ),
+        Ans_ptr (*fn)( long, long ),
         long arg1,
-        long arg2,
-        int indent
+        long arg2
     )
     : fn_( fn )
     , arg1_( arg1 )
     , arg2_( arg2 )
-    , indent_( indent )
     {
     }
 
@@ -44,14 +34,12 @@ struct FunctionTailCall
     : fn_( other.fn_ )
     , arg1_( other.arg1_ )
     , arg2_( other.arg2_ )
-    , indent_( other.indent_ )
     {
     }
 
     Ans_ptr operator()()
     {
-        print_indent( indent_, "sumall_impl_tc" );
-        return fn_( arg1_, arg2_, indent_ );
+        return fn_( arg1_, arg2_ );
     }
 };
 
@@ -82,7 +70,18 @@ struct TailCallOrAnswer
     }
 };
 
-Ans_ptr sumall_impl_tc( long acc, long i, int indent )
+
+long tail_call( Ans_ptr call )
+{
+    while( call->tail_call_.get() )
+    {
+        call = (*call->tail_call_)();
+    }
+    return *( call->ret_val_ );
+}
+
+
+Ans_ptr times_two_tail_call_impl( long acc, long i )
 {
     if( i == 0 )
     {
@@ -94,46 +93,16 @@ Ans_ptr sumall_impl_tc( long acc, long i, int indent )
         return Ans_ptr(
             new TailCallOrAnswer( Tc_ptr(
                 new FunctionTailCall(
-                    sumall_impl_tc, acc + i, i - 1, indent ) ) ) );
+                    times_two_tail_call_impl, acc + 2, i - 1 ) ) ) );
     }
 }
 
-long tail_call( Ans_ptr call )
-{
-    while( call->tail_call_.get() )
-    {
-        call = (*call->tail_call_)();
-    }
-    return *( call->ret_val_ );
-}
-
-long sumall_tc( long n )
+long times_two_tail_call( long n )
 {
     return tail_call( Ans_ptr(
         new TailCallOrAnswer(
-            Tc_ptr( new FunctionTailCall( sumall_impl_tc, 1, n, 0 ) ) ) ) );
+            Tc_ptr( new FunctionTailCall( times_two_tail_call_impl, 0, n ) ) ) ) );
 }
-
-long sumall_impl( long acc, long i, int indent )
-{
-    print_indent( indent, "sumall_impl" );
-
-    if( i == 0 )
-    {
-        return acc;
-    }
-    else
-    {
-        return sumall_impl( acc + i, i - 1, indent + 1 );
-    }
-}
-
-long sumall( long n )
-{
-    return sumall_impl( 1, n, 0 );
-}
-
-*/
 
 long times_two_recursive_impl( long total, long counter )
 {
@@ -216,6 +185,7 @@ int test_all()
         test_one( times_two_hardware,  "times_two_hardware"  );
         test_one( times_two_loop,      "times_two_loop"      );
         test_one( times_two_recursive, "times_two_recursive" );
+        test_one( times_two_tail_call, "times_two_tail_call" );
     }
     catch( AssertionFailure& e )
     {
