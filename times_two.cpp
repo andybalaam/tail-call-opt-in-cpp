@@ -135,6 +135,23 @@ long sumall( long n )
 
 */
 
+long times_two_recursive_impl( long total, long counter )
+{
+    if( counter == 0 )
+    {
+        return total;
+    }
+    else
+    {
+        return times_two_recursive_impl( total + 2, counter - 1 );
+    }
+}
+
+long times_two_recursive( long value )
+{
+    return times_two_recursive_impl( 0, value );
+}
+
 long times_two_loop( long value )
 {
     long ret = 0;
@@ -196,8 +213,9 @@ int test_all()
 {
     try
     {
-        test_one( times_two_hardware, "times_two_hardware" );
-        test_one( times_two_loop,     "times_two_loop" );
+        test_one( times_two_hardware,  "times_two_hardware"  );
+        test_one( times_two_loop,      "times_two_loop"      );
+        test_one( times_two_recursive, "times_two_recursive" );
     }
     catch( AssertionFailure& e )
     {
