@@ -2,105 +2,119 @@
 #include <cstring>
 #include <stdexcept>
 #include <iostream>
-#include <memory>
 #include <string>
 #include <sstream>
 
-struct TailCallOrAnswer;
-typedef std::auto_ptr<TailCallOrAnswer> Ans_ptr;
-
-
-
-
+struct Answer;
+typedef Answer (*impl_fn_type)( long, long );
+impl_fn_type null_fn;
 
 struct FunctionTailCall
 {
-    Ans_ptr (*fn_)( long, long );
+    impl_fn_type fn_;
     long arg1_;
     long arg2_;
 
     FunctionTailCall(
-        Ans_ptr (*fn)( long, long ),
+        impl_fn_type fn,
         long arg1,
         long arg2
-    )
-    : fn_( fn )
-    , arg1_( arg1 )
-    , arg2_( arg2 )
-    {
-    }
+    );
 
-    FunctionTailCall( const FunctionTailCall& other )
-    : fn_( other.fn_ )
-    , arg1_( other.arg1_ )
-    , arg2_( other.arg2_ )
-    {
-    }
+    FunctionTailCall( const FunctionTailCall& other );
 
-    Ans_ptr operator()()
-    {
-        return fn_( arg1_, arg2_ );
-    }
+    Answer operator()();
 };
 
-typedef std::auto_ptr<FunctionTailCall> Tc_ptr;
-typedef std::auto_ptr<long> long_ptr;
 
-struct TailCallOrAnswer
+struct Answer
 {
-    Tc_ptr tail_call_;
+    bool use_function_;
+    FunctionTailCall tail_call_;
     long ret_val_;
 
-    TailCallOrAnswer( Tc_ptr tail_call )
-    : tail_call_( tail_call )
-    , ret_val_( 0 )
-    {
-    }
-
-    TailCallOrAnswer( long ret_val )
-    : tail_call_( NULL )
-    , ret_val_( ret_val )
-    {
-    }
-
-    TailCallOrAnswer( const TailCallOrAnswer& other )
-    : tail_call_( new FunctionTailCall( *(other.tail_call_) ) )
-    , ret_val_( other.ret_val_ )
-    {
-    }
+    Answer( FunctionTailCall tail_call );
+    Answer( long ret_val );
+    Answer( const Answer& other );
 };
 
 
-long tail_call( Ans_ptr call )
+
+
+
+FunctionTailCall::FunctionTailCall(
+    impl_fn_type fn,
+    long arg1,
+    long arg2
+)
+: fn_( fn )
+, arg1_( arg1 )
+, arg2_( arg2 )
 {
-    while( call->tail_call_.get() )
-    {
-        call = (*call->tail_call_)();
-    }
-    return call->ret_val_;
+}
+
+FunctionTailCall::FunctionTailCall( const FunctionTailCall& other )
+: fn_( other.fn_ )
+, arg1_( other.arg1_ )
+, arg2_( other.arg2_ )
+{
+}
+
+Answer FunctionTailCall::operator()()
+{
+    return fn_( arg1_, arg2_ );
 }
 
 
-Ans_ptr times_two_tail_call_impl( long acc, long i )
+Answer::Answer( FunctionTailCall tail_call )
+: use_function_( true )
+, tail_call_( tail_call )
+, ret_val_( 0 )
+{
+}
+
+Answer::Answer( long ret_val )
+: use_function_( false )
+, tail_call_( FunctionTailCall( null_fn, 0, 0 ) )
+, ret_val_( ret_val )
+{
+}
+
+Answer::Answer( const Answer& other )
+: tail_call_( FunctionTailCall( other.tail_call_ ) )
+, ret_val_( other.ret_val_ )
+{
+}
+
+
+long tail_call( Answer call )
+{
+    while( call.use_function_ )
+    {
+        Answer x = call.tail_call_();
+        call = x;
+    }
+    return call.ret_val_;
+}
+
+
+Answer times_two_tail_call_impl( long acc, long i )
 {
     if( i == 0 )
     {
-        return Ans_ptr( new TailCallOrAnswer( acc ) );
+        return Answer( acc );
     }
     else
     {
-        return Ans_ptr(
-            new TailCallOrAnswer( Tc_ptr(
-                new FunctionTailCall(
-                    times_two_tail_call_impl, acc + 2, i - 1 ) ) ) );
+        return Answer(
+            FunctionTailCall( times_two_tail_call_impl, acc + 2, i - 1 ) );
     }
 }
 
 long times_two_tail_call( long n )
 {
-    return tail_call( Ans_ptr(
-        new TailCallOrAnswer(
-            Tc_ptr( new FunctionTailCall( times_two_tail_call_impl, 0, n ) ) ) ) );
+    return tail_call(
+        Answer( FunctionTailCall( times_two_tail_call_impl, 0, n ) ) );
 }
 
 long times_two_recursive_impl( long total, long counter )
