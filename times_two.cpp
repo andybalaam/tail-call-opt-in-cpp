@@ -49,15 +49,15 @@ typedef std::auto_ptr<long> long_ptr;
 struct TailCallOrAnswer
 {
     Tc_ptr tail_call_;
-    long_ptr ret_val_;
+    long ret_val_;
 
     TailCallOrAnswer( Tc_ptr tail_call )
     : tail_call_( tail_call )
-    , ret_val_( NULL )
+    , ret_val_( 0 )
     {
     }
 
-    TailCallOrAnswer( long_ptr ret_val )
+    TailCallOrAnswer( long ret_val )
     : tail_call_( NULL )
     , ret_val_( ret_val )
     {
@@ -65,7 +65,7 @@ struct TailCallOrAnswer
 
     TailCallOrAnswer( const TailCallOrAnswer& other )
     : tail_call_( new FunctionTailCall( *(other.tail_call_) ) )
-    , ret_val_( new long( *(other.ret_val_) ) )
+    , ret_val_( other.ret_val_ )
     {
     }
 };
@@ -77,7 +77,7 @@ long tail_call( Ans_ptr call )
     {
         call = (*call->tail_call_)();
     }
-    return *( call->ret_val_ );
+    return call->ret_val_;
 }
 
 
@@ -85,8 +85,7 @@ Ans_ptr times_two_tail_call_impl( long acc, long i )
 {
     if( i == 0 )
     {
-        return Ans_ptr(
-            new TailCallOrAnswer( long_ptr( new long( acc ) ) ) );
+        return Ans_ptr( new TailCallOrAnswer( acc ) );
     }
     else
     {
