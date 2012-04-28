@@ -1,48 +1,52 @@
 
 all: test
 
-compile: times_two
-
 times_two: times_two.cpp
 	g++ -Wall -Werror -o times_two times_two.cpp
 
 test: compile
 	./times_two test
 
-hardware: compile
+hardware: times_two
 	./times_two hardware 10
 
-loop: compile
+loop: times_two
 	./times_two loop 10
 
-recursive: compile
+recursive: times_two
 	./times_two recursive 10
 
-tail_call: compile
+tail_call: times_two
 	./times_two tail_call 10
 
 
-hardware-stack: compile
-	./get-stack-usage.sh hardware hardware-stack-usage.txt
+hardware-stack-usage.txt: times_two
+	./get-stack-usage.sh hardware >@
 
-loop-stack: compile
-	./get-stack-usage.sh loop loop-stack-usage.txt
+loop-stack-usage.txt: times_two
+	./get-stack-usage.sh loop > $@
 
-recursive-stack: compile
-	./get-stack-usage.sh recursive recursive-stack-usage.txt
+recursive-stack-usage.txt: times_two
+	./get-stack-usage.sh recursive > $@
 
-tail_call-stack: compile
-	./get-stack-usage.sh tail_call tail_call-usage.txt
+tail_call-usage.txt: times_two
+	./get-stack-usage.sh tail_call > $@
 
-hardware-time: compile
-	./do-times.sh hardware
+TIMES=times-hardware.txt times-loop.txt times-recursive.txt times-tail_call.txt
 
-loop-time: compile
-	./do-times.sh loop
+times:$(TIMES)
 
-recursive-time: compile
-	./do-times.sh recursive
+times-hardware.txt: times_two Makefile do-times.sh
+	./do-times.sh hardware > $@
 
-tail_call-time: compile
-	./do-times.sh tail_call
+times-loop.txt: times_two Makefile do-times.sh
+	./do-times.sh loop > $@
 
+times-recursive.txt: times_two Makefile do-times.sh
+	./do-times.sh recursive > $@
+
+times-tail_call.txt: times_two Makefile do-times.sh
+	./do-times.sh tail_call > $@
+
+clean-times:
+	rm -f $(TIMES)
