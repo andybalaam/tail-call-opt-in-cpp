@@ -1,5 +1,6 @@
 
 TIMES=times-hardware.txt times-loop.txt times-recursive.txt times-tail_call.txt
+STACKS=stack-hardware.txt stack-loop.txt stack-recursive.txt stack-tail_call.txt
 
 all: test
 
@@ -22,36 +23,33 @@ tail_call: times_two
 	./times_two tail_call 10
 
 
-hardware-stack-usage.txt: times_two
-	./get-stack-usage.sh hardware >@
+stack-view: stack.svg
+	firefox stack.svg
 
-loop-stack-usage.txt: times_two
-	./get-stack-usage.sh loop > $@
+stack.svg: plot_stack.gnuplot $(STACKS)
+	gnuplot plot_stack.gnuplot
 
-recursive-stack-usage.txt: times_two
-	./get-stack-usage.sh recursive > $@
+stack: $(STACKS)
 
-tail_call-usage.txt: times_two
-	./get-stack-usage.sh tail_call > $@
+stack-%.txt: times_two Makefile do-stack.sh
+	./do-stack.sh $* > $@
+
+clean-stack:
+	rm -f $(STACKS)
 
 
 
-times-view:
-	gnuplot plot_times.gnuplot -persist
+times-view: times.svg
+	firefox times.svg
 
-times:$(TIMES)
+times.svg: plot_times.gnuplot $(TIMES)
+	gnuplot plot_times.gnuplot
 
-times-hardware.txt: times_two Makefile do-times.sh
-	./do-times.sh hardware > $@
+times: $(TIMES)
 
-times-loop.txt: times_two Makefile do-times.sh
-	./do-times.sh loop > $@
-
-times-recursive.txt: times_two Makefile do-times.sh
-	./do-times.sh recursive > $@
-
-times-tail_call.txt: times_two Makefile do-times.sh
-	./do-times.sh tail_call > $@
+times-%.txt: times_two Makefile do-times.sh
+	./do-times.sh $* > $@
 
 clean-times:
 	rm -f $(TIMES)
+

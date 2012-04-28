@@ -195,7 +195,6 @@ void call_one( times_two_function fn, int argc, char * const argv[] )
     }
 
     fn( arg );
-    //std::cout << fn( arg ) << std::endl;
 }
 
 int main( int argc, char * const argv[] )
