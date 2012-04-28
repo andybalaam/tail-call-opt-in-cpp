@@ -2,7 +2,8 @@
 
 METHOD=$1
 
-NUMS="100000 1000000 10000000 20000000 21000000 22000000 23000000 24000000 25000000 26000000"
+NUMS="100000 1000000 10000000 20000000 21000000 22000000 23000000 24000000 25000000 26000000 27000000"
+#NUMS="100000 1000000 10000000 20000000"
 
 echo -e iterations\\t$METHOD
 
@@ -13,11 +14,10 @@ echo -e iterations\\t$METHOD
 
 for NUM in $NUMS ; do
 {
-    echo -e -n $NUM\\t
-    /usr/bin/time -f "%e" ./times_two $METHOD $NUM 2>&1
-    echo -e -n $NUM\\t
-    /usr/bin/time -f "%e" ./times_two $METHOD $NUM 2>&1
-    echo -e -n $NUM\\t
-    /usr/bin/time -f "%e" ./times_two $METHOD $NUM 2>&1
+    for I in 1 ; do
+    {
+        echo -e -n $NUM\\t
+        /usr/bin/time -f "%e" ./times_two $METHOD $NUM 2>&1
+    }; done
 }; done
 
