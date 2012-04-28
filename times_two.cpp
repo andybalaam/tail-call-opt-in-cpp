@@ -7,42 +7,36 @@
 
 struct Answer;
 typedef Answer (*impl_fn_type)( long, long );
-impl_fn_type null_fn;
 
-struct FunctionTailCall
+struct FnPlusArgs
 {
     impl_fn_type fn_;
     long arg1_;
     long arg2_;
 
-    FunctionTailCall(
+    FnPlusArgs(
         impl_fn_type fn,
         long arg1,
         long arg2
     );
 
-    FunctionTailCall( const FunctionTailCall& other );
-
     Answer operator()();
 };
 
+impl_fn_type null_fn = NULL;
+FnPlusArgs null_fn_plus_args( null_fn, 0, 0 );
 
 struct Answer
 {
-    bool use_function_;
-    FunctionTailCall tail_call_;
-    long ret_val_;
+    bool finished_;
+    FnPlusArgs tail_call_;
+    long value_;
 
-    Answer( FunctionTailCall tail_call );
-    Answer( long ret_val );
-    Answer( const Answer& other );
+    Answer( bool finished, FnPlusArgs tail_call, long value );
 };
 
 
-
-
-
-FunctionTailCall::FunctionTailCall(
+FnPlusArgs::FnPlusArgs(
     impl_fn_type fn,
     long arg1,
     long arg2
@@ -53,48 +47,26 @@ FunctionTailCall::FunctionTailCall(
 {
 }
 
-FunctionTailCall::FunctionTailCall( const FunctionTailCall& other )
-: fn_( other.fn_ )
-, arg1_( other.arg1_ )
-, arg2_( other.arg2_ )
-{
-}
-
-Answer FunctionTailCall::operator()()
+Answer FnPlusArgs::operator()()
 {
     return fn_( arg1_, arg2_ );
 }
 
 
-Answer::Answer( FunctionTailCall tail_call )
-: use_function_( true )
+Answer::Answer( bool finished, FnPlusArgs tail_call, long value )
+: finished_( finished )
 , tail_call_( tail_call )
-, ret_val_( 0 )
+, value_( value )
 {
 }
 
-Answer::Answer( long ret_val )
-: use_function_( false )
-, tail_call_( FunctionTailCall( null_fn, 0, 0 ) )
-, ret_val_( ret_val )
+long tail_call( Answer answer )
 {
-}
-
-Answer::Answer( const Answer& other )
-: tail_call_( FunctionTailCall( other.tail_call_ ) )
-, ret_val_( other.ret_val_ )
-{
-}
-
-
-long tail_call( Answer call )
-{
-    while( call.use_function_ )
+    while( !answer.finished_ )
     {
-        Answer x = call.tail_call_();
-        call = x;
+        answer = answer.tail_call_();
     }
-    return call.ret_val_;
+    return answer.value_;
 }
 
 
@@ -102,19 +74,24 @@ Answer times_two_tail_call_impl( long acc, long i )
 {
     if( i == 0 )
     {
-        return Answer( acc );
+        return Answer( true, null_fn_plus_args, acc );
     }
     else
     {
         return Answer(
-            FunctionTailCall( times_two_tail_call_impl, acc + 2, i - 1 ) );
+            false,
+            FnPlusArgs( times_two_tail_call_impl, acc + 2, i - 1 ),
+            0
+        );
     }
 }
 
 long times_two_tail_call( long n )
 {
-    return tail_call(
-        Answer( FunctionTailCall( times_two_tail_call_impl, 0, n ) ) );
+    return tail_call( Answer(
+        false,
+        FnPlusArgs( times_two_tail_call_impl, 0, n ),
+        0 ) );
 }
 
 long times_two_recursive_impl( long total, long counter )
@@ -208,9 +185,22 @@ int test_all()
     return 0;
 }
 
+void call_one( times_two_function fn, int argc, char * const argv[] )
+{
+    long arg = 0;
+    if ( argc >= 3 )
+    {
+        std::istringstream ss( argv[2] );
+        ss >> arg;
+    }
+
+    fn( arg );
+    //std::cout << fn( arg ) << std::endl;
+}
+
 int main( int argc, char * const argv[] )
 {
-    if ( argc != 2 )
+    if ( argc < 2 )
     {
         std::cerr
             << "You must specify one of: "
@@ -227,15 +217,27 @@ int main( int argc, char * const argv[] )
     }
     else if ( arg == "hardware" )
     {
+        call_one( times_two_hardware, argc, argv );
     }
     else if ( arg == "loop" )
     {
+        call_one( times_two_loop, argc, argv );
     }
     else if ( arg == "recursive" )
     {
+        call_one( times_two_recursive, argc, argv );
     }
     else if ( arg == "tail_call" )
     {
+        call_one( times_two_tail_call, argc, argv );
+    }
+    else
+    {
+        std::cerr
+            << "You must specify one of: "
+            << "test, hardware, loop, recursive, tail_call"
+            << std::endl;
+        return 1;
     }
 
     return 0;
