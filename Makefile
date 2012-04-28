@@ -1,4 +1,6 @@
 
+TIMES=times-hardware.txt times-loop.txt times-recursive.txt times-tail_call.txt
+
 all: test
 
 times_two: times_two.cpp
@@ -32,7 +34,10 @@ recursive-stack-usage.txt: times_two
 tail_call-usage.txt: times_two
 	./get-stack-usage.sh tail_call > $@
 
-TIMES=times-hardware.txt times-loop.txt times-recursive.txt times-tail_call.txt
+
+
+times-view:
+	gnuplot plot_times.gnuplot -persist
 
 times:$(TIMES)
 
