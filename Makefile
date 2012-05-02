@@ -4,6 +4,8 @@ DOC_NAME=tail-call-opt-in-cpp
 TIMES=times-hardware.txt times-loop.txt times-recursive.txt times-tail_call.txt
 STACKS=stack-hardware.txt stack-loop.txt stack-recursive.txt stack-tail_call.txt
 
+SOURCES=times_two.cpp test_one.cpp hardware.cpp loop.cpp recursive.cpp tail_call.cpp tail_call_templ.cpp
+
 all: test display
 
 
@@ -31,17 +33,11 @@ $(DOC_NAME).pdf: $(DOC_NAME).xml
 clean:
 	rm -f $(DOC_NAME).txt
 
-
-
-times_two: times_two.cpp
+times_two: $(SOURCES)
 	g++ -Wall -Werror -o times_two times_two.cpp
 
-times_two_templ: times_two_templ.cpp
-	g++ -Wall -Werror -o times_two_templ times_two_templ.cpp
-
-test: times_two times_two_templ
+test: times_two
 	./times_two test
-	./times_two_templ 0
 
 hardware: times_two
 	./times_two hardware 10
@@ -55,8 +51,8 @@ recursive: times_two
 tail_call: times_two
 	./times_two tail_call 10
 
-tail_call_templ: times_two_templ
-	./times_two_templ 100
+tail_call_templ: times_two
+	./times_two tail_call_templ 100
 
 stack-view: stack.svg
 	firefox stack.svg
