@@ -1,8 +1,37 @@
 
+DOC_NAME=tail-call-opt-in-cpp
+
 TIMES=times-hardware.txt times-loop.txt times-recursive.txt times-tail_call.txt
 STACKS=stack-hardware.txt stack-loop.txt stack-recursive.txt stack-tail_call.txt
 
-all: test
+all: test display
+
+
+
+html: $(DOC_NAME).html
+
+pdf: $(DOC_NAME).pdf
+
+display:
+	less $(DOC_NAME).txt
+	rm $(DOC_NAME).txt
+
+$(DOC_NAME).txt: $(DOC_NAME).in
+	m4 $(DOC_NAME).in > $(DOC_NAME).txt || rm $(DOC_NAME).txt
+
+$(DOC_NAME).html: $(DOC_NAME).txt svgs
+	asciidoc $(DOC_NAME).txt
+
+$(DOC_NAME).xml: $(DOC_NAME).txt
+	asciidoc -b docbook $(DOC_NAME).txt
+
+$(DOC_NAME).pdf: $(DOC_NAME).xml
+	dblatex $(DOC_NAME).xml
+
+clean:
+	rm -f $(DOC_NAME).txt
+
+
 
 times_two: times_two.cpp
 	g++ -Wall -Werror -o times_two times_two.cpp
