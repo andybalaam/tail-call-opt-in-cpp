@@ -232,7 +232,7 @@ So, it turns out that the tail call optimisation is just a +while+ loop.  Sort o
 
 You might well be interested in the performance of this code relative to normal recursion.  The tail call version can process arbitrarily large input, but how much do you pay for that in terms of performance?
 
-Recall that there are 4 different versions of our function, called +times_two+.  The first, "hardware", uses the "*" operator to multiply by 2.  The second, "loop" uses a for loop to add up lots of 2s until we get the answer.  The third, "recursive", uses a recursive function to add up 2s.  The fourth, "tail_call" is a reimplementation of "recursive", with a manual version of the tail call optimisation - see the original article for details.
+Recall that there are 4 different versions of our function, called +times_two+.  The first, "hardware", uses the "*" operator to multiply by 2.  The second, "loop" uses a for loop to add up lots of 2s until we get the answer.  The third, "recursive", uses a recursive function to add up 2s.  The fourth, "tail_call" is a reimplementation of "recursive", with a manual version of the tail call optimisation.
 
 Let's look first at memory usage.  The stack memory usage over time as reported by Massif (<<Massif>>) of calling the four functions for a relatively small input value of 100000 is shown in figure 1.
 
