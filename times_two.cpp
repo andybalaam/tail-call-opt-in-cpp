@@ -5,6 +5,8 @@
 #include <string>
 #include <sstream>
 
+#include "hardware.cpp"
+
 struct Answer;
 typedef Answer (*impl_fn_type)( long, long );
 
@@ -119,11 +121,6 @@ long times_two_loop( long value )
         ret += 2;
     }
     return ret;
-}
-
-long times_two_hardware( long value )
-{
-    return value * 2;
 }
 
 

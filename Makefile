@@ -36,8 +36,12 @@ clean:
 times_two: times_two.cpp
 	g++ -Wall -Werror -o times_two times_two.cpp
 
-test: compile
+times_two_templ: times_two_templ.cpp
+	g++ -Wall -Werror -o times_two_templ times_two_templ.cpp
+
+test: times_two times_two_templ
 	./times_two test
+	./times_two_templ 0
 
 hardware: times_two
 	./times_two hardware 10
@@ -51,6 +55,8 @@ recursive: times_two
 tail_call: times_two
 	./times_two tail_call 10
 
+tail_call_templ: times_two_templ
+	./times_two_templ 100
 
 stack-view: stack.svg
 	firefox stack.svg
