@@ -4,86 +4,145 @@ namespace tail_call_templ
 {
 
 template<typename RetT>
-struct IAnswer;
+class IAnswer;
 
 template<typename RetT>
-struct FnPlusArgs
+class ICallable
 {
+public:
     typedef std::auto_ptr< IAnswer<RetT> > AnswerPtr;
-    typedef AnswerPtr (*fn_type)( long, long );
+    virtual AnswerPtr operator()() const = 0;
+};
 
-    fn_type fn_;
-    long arg1_;
-    long arg2_;
+template<typename RetT, typename Arg1T, typename Arg2T>
+class FnPlusArgs2 : public ICallable<RetT>
+{
+private:
+    typedef typename ICallable<RetT>::AnswerPtr AnswerPtr;
+public:
+    typedef AnswerPtr (*fn_type)( const Arg1T, const Arg2T );
+private:
+    const fn_type fn_;
+    const Arg1T arg1_;
+    const Arg2T arg2_;
 
-    FnPlusArgs(
-        fn_type fn,
-        long arg1,
-        long arg2
-    )
+public:
+    FnPlusArgs2( const fn_type fn, const Arg1T arg1, const Arg2T arg2 )
     : fn_( fn )
     , arg1_( arg1 )
     , arg2_( arg2 )
     {
     }
 
-    AnswerPtr operator()()
+    virtual AnswerPtr operator()() const
     {
         return fn_( arg1_, arg2_ );
     }
+
+    static FnPlusArgs2<RetT, Arg1T, Arg2T> null()
+    {
+        return FnPlusArgs2<RetT, Arg1T, Arg2T>( NULL, 0, 0 );
+    }
+
 };
 
 template<typename RetT>
-struct IAnswer
+class IAnswer
 {
-    virtual bool finished() = 0;
-    virtual FnPlusArgs<RetT>& tail_call() = 0;
-    virtual RetT value() = 0;
+public:
+    virtual const bool             finished()  const = 0;
+    virtual const ICallable<RetT>& tail_call() const = 0;
+    virtual const RetT             value()     const = 0;
 };
 
 
-template<typename RetT>
-struct Answer2 : public IAnswer<RetT>
+template<typename RetT, typename Arg1T, typename Arg2T>
+class Answer2 : public IAnswer<RetT>
 {
-    bool finished_;
-    FnPlusArgs<RetT> tail_call_;
-    RetT value_;
+private:
+    typedef FnPlusArgs2<RetT, Arg1T, Arg2T> FnArgs;
+    typedef std::auto_ptr< IAnswer<RetT> > AnswerPtr;
 
-    Answer2( bool finished, FnPlusArgs<RetT> tail_call, RetT value )
+    const bool finished_;
+    const FnArgs tail_call_;
+    const RetT value_;
+
+private:
+    Answer2( const bool finished, const FnArgs tail_call, const RetT value )
     : finished_( finished )
     , tail_call_( tail_call )
     , value_( value )
     {
     }
 
-    virtual bool finished() { return finished_; };
-    virtual FnPlusArgs<RetT>& tail_call() { return tail_call_; };
-    virtual RetT value() { return value_; };
+    static AnswerPtr newPtr(
+        const bool finished, const FnArgs tail_call, const RetT value )
+    {
+        return AnswerPtr( new Answer2<RetT, Arg1T, Arg2T>(
+            finished, tail_call, value ) );
+    }
+public:
+    static AnswerPtr newFn(
+        const typename FnArgs::fn_type fn,
+        const Arg1T arg1,
+        const Arg2T arg2,
+        const RetT zero_val )
+    {
+        return newPtr( false, FnArgs( fn, arg1, arg2 ), zero_val );
+    }
+
+    static AnswerPtr newAns( const RetT value )
+    {
+        return newPtr( true, FnArgs::null(), value );
+    }
+
+    virtual const bool    finished()  const { return finished_; };
+    virtual const FnArgs& tail_call() const { return tail_call_; };
+    virtual const RetT    value()     const { return value_; };
 };
 
-std::auto_ptr< IAnswer<long> > times_two_tail_call_impl( long acc, long i )
+/**
+ * Forward-declaration.
+ */
+std::auto_ptr< IAnswer<long> > times_two_tail_call_impl(
+    const long acc, const long i );
+
+/**
+ * Extra function added to demonstrate that this code works with 2 functions
+ * calling each other recursively, instead of a single function.
+ */
+std::auto_ptr< IAnswer<long> > times_two_tail_call_impl_log(
+    const long acc, const long i )
 {
+    //std::cout << ".";
+
+    return Answer2<long, long, long>::newFn(
+        times_two_tail_call_impl, acc, i, 0 );
+}
+
+/**
+ * The function that does the real work, but calls
+ * times_two_tail_call_impl_log, which calls this again recursively.
+ */
+std::auto_ptr< IAnswer<long> > times_two_tail_call_impl(
+    const long acc, const long i )
+{
+    typedef Answer2<long, long, long> AnswerType;
+
     if( i == 0 )
     {
-        return std::auto_ptr< IAnswer<long> >(
-            new Answer2<long>( true, FnPlusArgs<long>( NULL, 0, 0 ), acc )
-        );
+        return AnswerType::newAns( acc );
     }
     else
     {
-        return std::auto_ptr< IAnswer<long> >(
-            new Answer2<long>(
-                false,
-                FnPlusArgs<long>( times_two_tail_call_impl, acc + 2, i - 1 ),
-                0
-            )
-        );
+        return AnswerType::newFn(
+            times_two_tail_call_impl_log, acc + 2, i - 1, 0 );
     }
 }
 
 
 template<typename RetT>
-RetT trampoline_templ( std::auto_ptr< IAnswer<RetT> > answer )
+const RetT trampoline_templ( std::auto_ptr< IAnswer<RetT> > answer )
 {
     while( !answer->finished() )
     {
@@ -92,19 +151,19 @@ RetT trampoline_templ( std::auto_ptr< IAnswer<RetT> > answer )
     return answer->value();
 }
 
+const long times_two_tail_call_templ_ns( const long n )
+{
+    typedef Answer2<long, long, long> AnswerType;
+
+    return trampoline_templ(
+        AnswerType::newFn( times_two_tail_call_impl, 0, n, 0 )
+    );
+}
+
 }
 
 long times_two_tail_call_templ( long n )
 {
-    return tail_call_templ::trampoline_templ(
-        typename std::auto_ptr< tail_call_templ::IAnswer<long> >(
-            new tail_call_templ::Answer2<long>(
-                false,
-                tail_call_templ::FnPlusArgs<long>(
-                    tail_call_templ::times_two_tail_call_impl, 0, n ),
-                0
-            )
-        )
-    );
+    return tail_call_templ::times_two_tail_call_templ_ns( n );
 }
 
