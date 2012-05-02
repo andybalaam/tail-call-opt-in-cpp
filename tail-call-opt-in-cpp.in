@@ -1,71 +1,51 @@
-In this series: <a href="/blog/2012/04/27/tail-call-optimisation-in-c/">Lightning talk</a>, <a href="/blog/2012/04/30/tail-call-optimisation-in-cpp/">Explanation</a>, Performance.
+= Tail Call Optimisation in C++ =
 
-After I wrote a version of <a href="/blog/2012/04/30/tail-call-optimisation-in-cpp/">tail-call optimised code in C++</a> I became interested in its performance relative to normal recursion.  The tail call version can process arbitrarily large input, but how much do you pay for that in terms of performance?
+Some programming languages make recursive programming more practical by providing the tail call optimisation.  For a lightning talk at the recent ACCU conference I looked at how we might do something similar in C++.  This article attempts a fuller explanation.
 
-Recap: there are 4 different versions of our function, called <tt>times_two</tt>.  The first, "hardware", uses the "*" operator to multiply by 2.  The second, "loop" uses a for loop to add up lots of 2s until we get the answer.  The third, "recursive", uses a recursive function to add up 2s.  The fourth, "tail_call" is a reimplementation of "recursive", with a manual version of the tail call optimisation - see the original article for details.
-
-Let's look first at memory usage.  Here is the stack memory usage over time as reported by <a href="http://valgrind.org/docs/manual/ms-manual.html">Massif</a> of calling the four functions for a relatively small input value of 100000:
-
-<img src="/blog/wp-content/uploads/stack.svg" alt="Stack usage by the four functions.  recursive uses loads, and the others are constant." />
-
-The recursive function uses way more memory than the others (note the logarithmic scale), because it keeps all those stack frames, and the tail_call version takes much longer than the others (possibly because it puts more strain on Massif?), but keeps its memory usage low.  Let's look at how that affects its performance, for different sizes of input:
-
-<img src="/blog/wp-content/uploads/times.svg" alt="Time taken by each function for different input values.  When recursive starts using more memory than is available on the machine, its execution time grows rapidly" />
-
-For these much larger input values, the recursive and tail_call functions take similar amounts of time, until the recursive version starts using all the physical memory on my computer.  At this point, its execution times become huge, and erratic, whereas the tail_call function plods on, working fine.
-
-So the overhead of the infrastructure of the tail call doesn't have much impact on execution time for large input values, but it's clear from the barely-visible green line at the bottom that using a for-loop with a mutable loop variable instead of function calls is way, way faster, with my compiler, on my computer, in C++.  About 18 times faster, in fact.
-
-And, just in case you were wondering: yes those pesky hardware engineers with their new-fangled "*" operator managed to defeat all comers with their unreasonable execution times of 0 seconds every time (to the nearest 10ms).  I suppose that shows you something.
-
-In this series: <a href="/blog/2012/04/27/tail-call-optimisation-in-c/">Lightning talk</a>, Explanation, <a href="/blog/2012/04/30/performance-of-tail-call-optimised-c/">Performance</a>.
-
-Some programming languages make recursive programming more practical by providing the tail call optimisation.  For a tiny talk at the recent ACCU conference I looked at how we might do something similar in C++.
-
-<h3>Multiplying by two</h3>
+== Multiplying by two ==
 
 Here's a toy problem we will use as our example.
 
 Imagine for a second that you want to write a function that multiplies a number by two.  OK, we can do that:
 
-<pre>long times_two_hardware( long value )
-{
-    return value * 2;
-}</pre>
+  long times_two_hardware( long value )
+  {
+      return value * 2;
+  }
 
-Now imagine that you don't have the "*" operator.  We're going have to use "+":
+Now imagine that you don't have the "*" operator.  We're going have to use "+".  We can do that too:
 
-<pre>long times_two_loop( long value )
-{
-    long ret = 0;
-    for ( long i = 0; i < value; ++i )
-    {
-        ret += 2;
-    }
-    return ret;
-}</pre>
+  long times_two_loop( long value )
+  {
+      long ret = 0;
+      for ( long i = 0; i < value; ++i )
+      {
+          ret += 2;
+      }
+      return ret;
+  }
 
 (Obviously, this is just a silly example designed to be easy to follow.)
 
 Now imagine that you read somewhere that state was bad, and you could always replace a loop with recursion.  Then you might get something like this:
 
-<pre>long times_two_naive_recursive( long value )
-{
-    if ( value == 0 )
-    {
-        return 0;
-    }
-    else
-    {
-        return 2 + times_two_naive_recursive( value - 1 );
-    }
-}</pre>
+  long times_two_naive_recursive( long value )
+  {
+      if ( value == 0 )
+      {
+          return 0;
+      }
+      else
+      {
+          return 2 + times_two_naive_recursive( value - 1 );
+      }
+  }
 
 This is fine, but what happens when you run it for a large input?
 
-<pre>$ ulimit -S -s 16
-$ ./times_two naive_recursive 100000
-Segmentation fault</pre>
+  $ ulimit -S -s 16
+  $ ./times_two naive_recursive 100000
+  Segmentation fault
 
 Note that I set my stack size to be very small (16K) to make the point - actually, this will run successfully for very large arguments, but it will eat all your memory and take a long time to finish.
 
@@ -73,7 +53,7 @@ Why does this fail?  Because every time you call a function, the state of the cu
 
 So is programming like this useless in practice?
 
-<h3>Tail call optimisation</h3>
+== Tail call optimisation ==
 
 No, because in several programming languages, the compiler or interpreter performs the "tail call optimisation".
 
@@ -81,98 +61,104 @@ When you call a function from within some other code, you normally need the stat
 
 The tail call optimisation throws away this unneeded state before calling the new function, instead of after.
 
-[In practice, in compiled code, this involves popping all the local variables off the stack, pushing the new function parameters on, and <tt>jmp</tt>ing to the new function, instead of <tt>call</tt>ing it.  This means that when we hit the <tt>ret</tt> at the end of the new function, we return to the original caller, instead of the location of the tail call.]
+****
+In practice, in compiled code, this involves popping all the local variables off the stack, pushing the new function parameters on, and +jmp+ ing to the new function, instead of +call+ ing it.  This means that when we hit the +ret+ at the end of the new function, we return to the original caller, instead of the location of the tail call.
+****
 
 Many recursive functions can be re-cast as tail-call versions (sometimes called iterative versions).  The one we're looking at is one of those.  Here is the tail-call version:
 
-<pre>long times_two_recursive_impl( long total, long counter )
-{
-    if ( counter == 0 )
-    {
-        return total;
-    }
-    else
-    {
-        return times_two_recursive_impl(
-            total + 2, counter - 1 );
-    }
-}
+  long times_two_recursive_impl( long total, long counter )
+  {
+      if ( counter == 0 )
+      {
+          return total;
+      }
+      else
+      {
+          return times_two_recursive_impl(
+              total + 2, counter - 1 );
+      }
+  }
+  
+  long times_two_recursive( long value )
+  {
+      return times_two_recursive_impl( 0, value );
+  }
 
-long times_two_recursive( long value )
-{
-    return times_two_recursive_impl( 0, value );
-}</pre>
+It consists of an outer function +times_two_recursive+ which just hands off control to the inner function +times_two_recursive_impl+.  The inner function uses a counter variable and calls itself recursively, reducing that counter by one each time, until it reaches zero, when it returns the total, which is increased by 2 each time.
 
-It consists of an outer function <tt>times_two_recursive</tt> which just hands off control to the inner function <tt>times_two_recursive_impl</tt>.  The inner function uses a counter variable and calls itself recursively, reducing that counter by one each time, until it reaches zero, when it returns the total, which is increased by 2 each time.
-
-The key feature of this implementation is that the recursive function <tt>times_two_recursive_impl</tt> uses a tail call to do the recursion: the value of calling itself is immediately returned, without reference to anything else in the function, even temporary variables.
+The key feature of this implementation is that the recursive function +times_two_recursive_impl+ uses a tail call to do the recursion: the value of calling itself is immediately returned, without reference to anything else in the function, even temporary variables.
 
 So, let's see what happens when we compile and run this:
 
-<pre>$ ulimit -S -s 16
-$ ./times_two recursive 100000
-Segmentation fault</pre>
+  $ ulimit -S -s 16
+  $ ./times_two recursive 100000
+  Segmentation fault
 
 Did I mention that C++ doesn't do the tail call optimisation?*
 
-<blockquote>* Tail call optimisation isn't in the C++ standard.  Apparently, some compilers, including MS Visual Studio and GCC, do provide tail call optimisation under certain circumstances (when optimisations are enabled, obviously).  It is difficult to implement for all cases, especially in C++ since destruction of objects can cause code to be executed where you might not have expected it, and it doesn't appear to be easy to tell when a compiler will or will not do it without examining the generated assembly language.  Languages which have this feature by design, like Scheme (and D?) can do it more predictably.</blockquote>
+*****
+*Tail call optimisation isn't in the C\++ standard.  Apparently, some compilers, including MS Visual Studio and GCC, do provide tail call optimisation under certain circumstances (when optimisations are enabled, obviously).  It is difficult to implement for all cases, especially in C++ since destruction of objects can cause code to be executed where you might not have expected it, and it doesn't appear to be easy to tell when a compiler will or will not do it without examining the generated assembly language.  Languages which have this feature by design, like Scheme, can do it more predictably.
+*****
 
-So how would we write code that is tail call optimised in C++?  Possibly of more interest to me personally: if we were generating C++ as the output format for some other language, what code might we generate for tail call optimised functions?
+So how would we write code that is tail call optimised in C\+\+?  Possibly of more interest to me personally: if we were generating C++ as the output format for some other language, what code might we generate for tail call optimised functions?
 
-<h3>Tail call optimised C++</h3>
+== Tail call optimised C++ ==
 
-Let's imagine for a second we have some classes, which I'll define later.  <tt>FnPlusArgs</tt> holds a function pointer, and some arguments to be passed to it.  <tt>Answer</tt> holds on to one of 2 things: either a <tt>FnPlusArgs</tt> to call later, or an actual answer (return value) for our function.
+Let's imagine for a second we have some classes, which I'll define later.  +FnPlusArgs+ holds a function pointer, and some arguments to be passed to it.  +Answer+ holds on to one of 2 things: either a +FnPlusArgs+ to call later, or an actual answer (return value) for our function.
 
 Now we can write our function like this:
 
-<pre>Answer times_two_tail_call_impl( long acc, long i )
-{
-    if ( i == 0 )
-    {
-        return Answer( true, null_fn_plus_args, acc );
-    }
-    else
-    {
-        return Answer(
-            false,
-            FnPlusArgs(
-                times_two_tail_call_impl,
-                acc + 2,
-                i - 1
-            ),
-            0
-        );
-    }
-}
+  Answer times_two_tail_call_impl( long acc, long i )
+  {
+      if ( i == 0 )
+      {
+          return Answer( true, null_fn_plus_args, acc );
+      }
+      else
+      {
+          return Answer(
+              false,
+              FnPlusArgs(
+                  times_two_tail_call_impl,
+                  acc + 2,
+                  i - 1
+              ),
+              0
+          );
+      }
+  }
+  
+  long times_two_tail_call( long n )
+  {
+      return tail_call( Answer(
+          false,
+          FnPlusArgs( times_two_tail_call_impl, 0, n ),
+          0 ) );
+  }
 
-long times_two_tail_call( long n )
-{
-    return tail_call( Answer(
-        false,
-        FnPlusArgs( times_two_tail_call_impl, 0, n ),
-        0 ) );
-}</pre>
+This has the same structure as +times_two_recursive+, if a little more verbose.  The important point to note, though, is that +times_two_tail_call_impl+ doesn't call itself recursively.  Instead, it returns an +Answer+ object, which is a delegate saying that we have more work to do: calling the provided function with the supplied arguments.
 
-This has the same structure as <tt>times_two_recursive</tt>, if a little more verbose.  The important point to note, though, is that <tt>times_two_tail_call_impl</tt> doesn't call itself recursively.  Instead, it returns an <tt>Answer</tt> object, which is a delegate saying that we have more work to do: calling the provided function with the supplied arguments.
-
-<h3>The Trampoline</h3>
+== The Trampoline ==
 
 All we need now is some infrastructure to call this function, and deal with its return value, calling functions repeatedly until we have an answer.  This function is called a "trampoline", and you can sort of see why:
 
-<pre>long trampoline( Answer answer )
-{
-    while ( !answer.finished_ )
-    {
-        answer = answer.tail_call_();
-    }
-    return answer.value_;
-}</pre>
+  long trampoline( Answer answer )
+  {
+      while ( !answer.finished_ )
+      {
+          answer = answer.tail_call_();
+      }
+      return answer.value_;
+  }
 
 While the answer we get back tells us we have more work to do, we call functions, and when we're finished we return the answer.
 
-Now all we need to get this working is the definition of <tt>Answer</tt> and <tt>FnPlusArgs</tt>:
+Now all we need to get this working is the definition of +Answer+ and +FnPlusArgs+, which are shown in listing 1.
 
-<pre>struct Answer;
+.Listing 1
+----
+struct Answer;
 typedef Answer (*impl_fn_type)( long, long );
 
 struct FnPlusArgs
@@ -225,18 +211,46 @@ Answer::Answer( bool finished, FnPlusArgs tail_call, long value )
 , tail_call_( tail_call )
 , value_( value )
 {
-}</pre>
+}
+----
 
 The only notable thing about this is that we use operator() on FnPlusArgs to call the function it holds.
 
-<h3>Results</h3>
+== Results ==
 
 Now, when we run this code, we get what we wanted:
 
-<pre>$ ulimit -S -s 16
-$ ./times_two tail_call 100000
-200000</pre>
+  $ ulimit -S -s 16
+  $ ./times_two tail_call 100000
+  200000
 
 (I.e. it doesn't crash.)
 
-So, it turns out that the tail call optimisation is just a <tt>while</tt> loop.  Sort of.
+So, it turns out that the tail call optimisation is just a +while+ loop.  Sort of.
+
+== Performance ==
+
+You might well be interested in the performance of this code relative to normal recursion.  The tail call version can process arbitrarily large input, but how much do you pay for that in terms of performance?
+
+Recall that there are 4 different versions of our function, called +times_two+.  The first, "hardware", uses the "*" operator to multiply by 2.  The second, "loop" uses a for loop to add up lots of 2s until we get the answer.  The third, "recursive", uses a recursive function to add up 2s.  The fourth, "tail_call" is a reimplementation of "recursive", with a manual version of the tail call optimisation - see the original article for details.
+
+Let's look first at memory usage.  The stack memory usage over time as reported by Massif (<<Massif>>) of calling the four functions for a relatively small input value of 100000 is shown in figure 1.
+
+.Figure 1
+image:stack.svg[]
+
+The recursive function uses way more memory than the others (note the logarithmic scale), because it keeps all those stack frames, and the tail_call version takes much longer than the others (possibly because it puts more strain on Massif?), but keeps its memory usage low.  Figure 2 shows how that affects its performance, for different sizes of input.
+
+.Figure 2
+image:times.svg[]
+
+For these much larger input values, the recursive and tail_call functions take similar amounts of time, until the recursive version starts using all the physical memory on my computer.  At this point, its execution times become huge, and erratic, whereas the tail_call function plods on, working fine.
+
+So the overhead of the infrastructure of the tail call doesn't have much impact on execution time for large input values, but it's clear from the barely-visible green line at the bottom that using a for-loop with a mutable loop variable instead of function calls is way, way faster, with my compiler, on my computer, in C++.  About 18 times faster, in fact.
+
+And, just in case you were wondering: yes those pesky hardware engineers with their new-fangled "*" operator managed to defeat all comers with their unreasonable execution times of 0 seconds every time (to the nearest 10ms).  I suppose that shows you something.
+
+== References ==
+
+[bibliography]
+- [[[Massif]]] http://valgrind.org/docs/manual/ms-manual.html

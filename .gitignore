@@ -2,3 +2,6 @@
 .scon*
 *.o
 times_two
+tail-call-opt-in-cpp.html
+tail-call-opt-in-cpp.txt
+

@@ -19,7 +19,7 @@ display:
 $(DOC_NAME).txt: $(DOC_NAME).in
 	m4 $(DOC_NAME).in > $(DOC_NAME).txt || rm $(DOC_NAME).txt
 
-$(DOC_NAME).html: $(DOC_NAME).txt svgs
+$(DOC_NAME).html: $(DOC_NAME).txt
 	asciidoc $(DOC_NAME).txt
 
 $(DOC_NAME).xml: $(DOC_NAME).txt
