@@ -2,14 +2,14 @@
 TIMES=times-hardware.txt times-loop.txt times-recursive.txt times-tail_call.txt
 STACKS=stack-hardware.txt stack-loop.txt stack-recursive.txt stack-tail_call.txt
 
-SOURCES=\
-	src/times_two.cpp \
+SOURCES=src/times_two.cpp \
 	src/test_one.cpp \
 	src/hardware.cpp \
 	src/loop.cpp \
 	src/recursive.cpp \
 	src/tail_call.cpp \
 	src/tail_call_templ.cpp \
+	src/tail_call_templ_2fns.cpp \
 
 
 all: test

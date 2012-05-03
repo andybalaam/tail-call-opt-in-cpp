@@ -6,6 +6,7 @@
 #include "recursive.cpp"
 #include "tail_call.cpp"
 #include "tail_call_templ.cpp"
+#include "tail_call_templ_2fns.cpp"
 
 #include "test_one.cpp"
 
@@ -18,12 +19,16 @@ int test_all()
         test_one( times_two_recursive,       "times_two_recursive"       );
         test_one( times_two_tail_call,       "times_two_tail_call"       );
         test_one( times_two_tail_call_templ, "times_two_tail_call_templ" );
+        test_one( times_two_tail_call_templ_2fns,
+            "times_two_tail_call_templ_2fns" );
     }
     catch( AssertionFailure& e )
     {
         std::cerr << e.what() << std::endl;
         return 1;
     }
+
+    std::cout << "All tests passed." << std::endl;
     return 0;
 }
 
@@ -45,7 +50,8 @@ int main( int argc, char * const argv[] )
     {
         std::cerr
             << "You must specify one of: "
-            << "test, hardware, loop, recursive, tail_call"
+            << "test, hardware, loop, recursive, tail_call, tail_call_templ, "
+            << "tail_call_templ_2fns"
             << std::endl;
 
         return 1;
@@ -76,11 +82,16 @@ int main( int argc, char * const argv[] )
     {
         call_one( times_two_tail_call_templ, argc, argv );
     }
+    else if ( arg == "tail_call_templ_2fns" )
+    {
+        call_one( times_two_tail_call_templ_2fns, argc, argv );
+    }
     else
     {
         std::cerr
             << "You must specify one of: "
-            << "test, hardware, loop, recursive, tail_call"
+            << "test, hardware, loop, recursive, tail_call, tail_call_templ, "
+            << "tail_call_templ_2fns"
             << std::endl;
         return 1;
     }
