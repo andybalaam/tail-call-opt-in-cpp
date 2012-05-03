@@ -2,12 +2,20 @@
 TIMES=times-hardware.txt times-loop.txt times-recursive.txt times-tail_call.txt
 STACKS=stack-hardware.txt stack-loop.txt stack-recursive.txt stack-tail_call.txt
 
-SOURCES=times_two.cpp test_one.cpp hardware.cpp loop.cpp recursive.cpp tail_call.cpp tail_call_templ.cpp
+SOURCES=\
+	src/times_two.cpp \
+	src/test_one.cpp \
+	src/hardware.cpp \
+	src/loop.cpp \
+	src/recursive.cpp \
+	src/tail_call.cpp \
+	src/tail_call_templ.cpp \
+
 
 all: test
 
 times_two: $(SOURCES)
-	g++ -Wall -Werror -o times_two times_two.cpp
+	g++ -Wall -Werror -o times_two src/times_two.cpp
 
 test: times_two
 	./times_two test
