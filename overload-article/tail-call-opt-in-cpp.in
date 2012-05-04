@@ -113,10 +113,14 @@ Now we can write our function like this:
   {
       if ( i == 0 )
       {
+          // First argument true means we have finished -
+          // the answer is acc
           return Answer( true, null_fn_plus_args, acc );
       }
       else
       {
+          // First argument false means more work to do -
+          // call the supplied function with these args
           return Answer(
               false,
               FnPlusArgs(
@@ -252,7 +256,7 @@ And, just in case you were wondering: yes those pesky hardware engineers with th
 
 == Generalisation ==
 
-Of course, the code shown above is specific to a recursive function which takes two long arguments and returns a long too.  However, the idea may be generalised.  If we make our trampoline a function template, taking the return value as a template parameter, like this:
+Of course, the code shown above is specific to a recursive function taking two long arguments and returning a long.  However, the idea may be generalised.  If we make our trampoline a function template, taking the return value as a template parameter, like this:
 
   template<typename RetT>
   const RetT trampoline_templ( std::auto_ptr< IAnswer<RetT> > answer )
@@ -269,23 +273,23 @@ which must work with a pointer to an IAnswer class template like this:
   template<typename RetT>
   struct IAnswer {
       virtual bool finished() const = 0;
-      virtual ICallable<RetT>& tail_call() const = 0;
+      virtual IFnPlusArgs<RetT>& tail_call() const = 0;
       virtual RetT value() const = 0;
   };
 
-which in turn uses an ICallable class template:
+which in turn uses an IFnPlusArgs class template:
 
   template<typename RetT>
-  struct ICallable {
+  struct IFnPlusArgs {
       typedef std::auto_ptr< IAnswer<RetT> > AnswerPtr;
       virtual AnswerPtr operator()() const = 0;
   };
 
-we may generalise to functions which take different numbers of arguments, of different types.  It is worth noting that only the return type is required as a template parameter.  The implementations of IAnswer and ICallable may be template classes themselves, but because of the use of these interfaces the types of the arguments need not leak into the trampoline code, meaning that multiple functions with different argument lists may call each other recursively.  (Of course, they must all agree on the eventual return value type.)  There is an example of how this might be implemented at <<Code>>, along with the full source code for this article.
+we may generalise to functions taking different numbers of arguments, of different types.  It is worth noting that only the return type is required as a template parameter.  Concrete classes derived from IAnswer and IFnPlusArgs may be template classes themselves, but because of the use of these interfaces the types of the arguments need not leak into the trampoline code, meaning that multiple functions with different argument lists may call each other recursively.  (Of course, they must all agree on the eventual return value type.)  There is an example of how this might be implemented at <<Code>>, along with the full source code for this article.
 
-Since this generalisation requires dynamic memory use (because the IAnswer instances are handled by pointer) this solution may be slower than the stack-only implementation above, but since all the memory is acquired and released in quick succession it is unlikely to be trigger prohibitively expensive allocation and deallocation algorithms.
+Since this generalisation requires dynamic memory use (because the IAnswer instances are handled by pointer) this solution may be slower than the stack-only implementation above, but since all the memory is acquired and released in quick succession it is unlikely to trigger prohibitively expensive allocation and deallocation algorithms.
 
-The examples at <<Code>> demonstrate the use of template classes to provide IAnswer and ICallable objects for each function type signature, and that functions with different signatures may call each other to co-operate to return a value.  Generalising the supplied Answer2, Answer3 etc. class templates to a single class template using C++11 variadic templates or template metaprogramming is left as an exercise for the reader.
+The examples at <<Code>> demonstrate the use of template classes to provide IAnswer and IFnPlusArgs objects for each function type signature, and that functions with different signatures may call each other to co-operate to return a value.  Generalising the supplied Answer2, Answer3 etc. class templates to a single class template using C++11 variadic templates or template metaprogramming is left as an exercise for the reader.
 
 == References ==
 
