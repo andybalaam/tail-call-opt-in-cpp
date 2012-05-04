@@ -12,10 +12,10 @@ display: $(DOC_NAME).txt
 	rm $(DOC_NAME).txt
 
 stack.svg:
-	cp ../stack.svg ./stack.svg
+	cp ../stack_bw_dotted.svg ./stack_bw_dotted.svg
 
 times.svg:
-	cp ../times.svg ./times.svg
+	cp ../times_bw_dotted.svg ./times_bw_dotted.svg
 
 $(DOC_NAME).txt: $(DOC_NAME).in stack.svg times.svg
 	m4 $(DOC_NAME).in > $(DOC_NAME).txt || rm $(DOC_NAME).txt

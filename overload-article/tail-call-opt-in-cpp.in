@@ -241,16 +241,16 @@ Recall that there are 4 different versions of our function, called +times_two+. 
 Let's look first at memory usage.  The stack memory usage over time as reported by Massif (<<Massif>>) of calling the four functions for a relatively small input value of 100000 is shown in figure 1.
 
 .Figure 1
-image:stack.svg[]
+image:stack_bw_dotted.svg[]
 
 The recursive function uses way more memory than the others (note the logarithmic scale), because it keeps all those stack frames, and the tail_call version takes much longer than the others (possibly because it puts more strain on Massif?), but keeps its memory usage low.  Figure 2 shows how that affects its performance, for different sizes of input.
 
 .Figure 2
-image:times.svg[]
+image:times_bw_dotted.svg[]
 
 For these much larger input values, the recursive and tail_call functions take similar amounts of time, until the recursive version starts using all the physical memory on my computer.  At this point, its execution times become huge, and erratic, whereas the tail_call function plods on, working fine.
 
-So the overhead of the infrastructure of the tail call doesn't have much impact on execution time for large input values, but it's clear from the barely-visible green line at the bottom that using a for-loop with a mutable loop variable instead of function calls is way, way faster, with my compiler, on my computer, in C++.  About 18 times faster, in fact.
+So the overhead of the infrastructure of the tail call doesn't have much impact on execution time for large input values, but it's clear from the barely-visible thin dotted line at the bottom that using a for-loop with a mutable loop variable instead of function calls is way, way faster, with my compiler, on my computer, in C++.  About 18 times faster, in fact.
 
 And, just in case you were wondering: yes those pesky hardware engineers with their new-fangled "*" operator managed to defeat all comers with their unreasonable execution times of 0 seconds every time (to the nearest 10ms).  I suppose that shows you something.
 
