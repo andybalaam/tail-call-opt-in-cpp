@@ -5,10 +5,6 @@
 namespace tail_call_templ
 {
 
-/**
- * The function that does the real work, but calls
- * times_two_tail_call_impl_log, which calls this again recursively.
- */
 std::auto_ptr< IAnswer<long> > times_two_tail_call_impl(
     const long acc, const long i )
 {
